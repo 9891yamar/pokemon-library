@@ -4,9 +4,13 @@ import { gsap } from 'gsap';
 type PokemonProps = {
     name: string;
     imageUrl?: string;
-    id?: number;
+    id: number; // idは必須にします（ハート判定に使うため）
 };
-defineProps<PokemonProps>();
+// propsを受け取る
+const props = defineProps<PokemonProps>();
+
+// 👇 【追加】お気に入り判定機能 (Day 4で作った装備品)
+const { isFavorite } = usePokemonFavorites();
 
 const onHover = (event: MouseEvent) => {
     const card = event.currentTarget as HTMLElement;
@@ -36,10 +40,19 @@ const onLeave = (event: MouseEvent) => {
 <template>
     <NuxtLink
         :to="`/pokemon/${id}`"
-        class="pokemon-card flex cursor-pointer flex-col items-center rounded-lg border border-slate-700 bg-slate-800 p-6 text-center transition-colors"
+        class="pokemon-card group relative flex cursor-pointer flex-col items-center rounded-lg border border-slate-700 bg-slate-800 p-6 text-center transition-colors"
         @mouseenter="onHover"
         @mouseleave="onLeave"
     >
+        <ClientOnly>
+            <div
+                v-if="isFavorite(id)"
+                class="absolute right-2 top-2 z-20 text-2xl drop-shadow-md"
+            >
+                ❤️
+            </div>
+        </ClientOnly>
+
         <img
             :src="imageUrl"
             :alt="name"

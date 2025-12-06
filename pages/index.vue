@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { gsap } from 'gsap';
+
 // 型定義
 type Pokemon = {
     name: string;
@@ -27,14 +29,40 @@ const filteredPokemons = computed(() => {
     );
 });
 
-// 4. お気に入り機能の呼び出し (追加部分)
-const { isFavorite } = usePokemonFavorites();
-
-// 5. URLからIDを取り出す便利関数 (これが抜けているとエラーになります！)
+// 4. URLからIDを取り出す便利関数
 const getPokemonId = (url: string) => {
     const parts = url.split('/');
     return Number(parts[parts.length - 2]);
 };
+
+// 5. GSAP: リストの出現アニメーション (シュッシュッと出るやつ)
+// ※ホバーアニメーションは PokemonCard.vue 側に任せました
+watch(
+    filteredPokemons,
+    async () => {
+        // サーバー側(SSR)での実行を防ぐ
+        if (!import.meta.client) return;
+
+        // DOM更新待ち
+        await nextTick();
+
+        // .pokemon-card クラスを持つ要素を一斉に操作
+        gsap.fromTo(
+            '.pokemon-card',
+            {
+                opacity: 0,
+                y: 20,
+            },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.4,
+                stagger: 0.05, // 0.05秒ずつずらす
+            }
+        );
+    },
+    { immediate: true }
+);
 
 useHead({
     title: 'ポケモン図鑑',
@@ -88,43 +116,15 @@ useHead({
             v-else
             class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
         >
-            <NuxtLink
+            <PokemonCard
                 v-for="pokemon in filteredPokemons"
                 :key="pokemon.url"
-                :to="`/pokemon/${getPokemonId(pokemon.url)}`"
-                class="group relative overflow-hidden rounded-2xl bg-slate-800 p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-900/20"
-            >
-                <ClientOnly>
-                    <div
-                        v-if="isFavorite(getPokemonId(pokemon.url))"
-                        class="absolute right-3 top-3 z-20 text-2xl drop-shadow-md"
-                    >
-                        ❤️
-                    </div>
-                </ClientOnly>
-
-                <span
-                    class="absolute -right-4 -top-4 text-8xl font-black text-slate-700/30 transition-colors group-hover:text-slate-600/30"
-                >
-                    #{{ getPokemonId(pokemon.url) }}
-                </span>
-
-                <div class="relative z-10 flex justify-center">
-                    <img
-                        :src="`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${getPokemonId(
-                            pokemon.url
-                        )}.png`"
-                        :alt="pokemon.name"
-                        class="h-40 w-40 drop-shadow-xl transition-transform duration-300 group-hover:scale-110"
-                    />
-                </div>
-
-                <div class="relative z-10 mt-4 text-center">
-                    <h2 class="text-xl font-bold capitalize text-slate-100">
-                        {{ pokemon.name }}
-                    </h2>
-                </div>
-            </NuxtLink>
+                :id="getPokemonId(pokemon.url)"
+                :name="pokemon.name"
+                :imageUrl="`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${getPokemonId(
+                    pokemon.url
+                )}.png`"
+            />
         </div>
     </div>
 </template>
